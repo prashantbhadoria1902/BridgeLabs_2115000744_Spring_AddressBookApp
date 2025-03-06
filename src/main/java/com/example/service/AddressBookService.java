@@ -2,27 +2,43 @@ package com.example.service;
 
 import com.example.dto.AddressBookDTO;
 import com.example.model.AddressBook;
-import com.example.repository.AddressBookRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class AddressBookService {
 
-    @Autowired
-    private AddressBookRepository repository;
+    private final List<AddressBook> addressBookList = new ArrayList<>();
+    private final AtomicLong idCounter = new AtomicLong(1);
 
     public AddressBook addContact(AddressBookDTO dto) {
-        AddressBook contact = new AddressBook(null, dto.getName(), dto.getEmail(), dto.getPhone());
-        return repository.save(contact);
+        AddressBook contact = new AddressBook(idCounter.getAndIncrement(), dto.getName(), dto.getEmail());
+        addressBookList.add(contact);
+        return contact;
     }
 
-    public List<AddressBookDTO> getAllContacts() {
-        return repository.findAll().stream()
-                .map(contact -> new AddressBookDTO(contact.getName(), contact.getEmail(), contact.getPhone()))
-                .collect(Collectors.toList());
+    public List<AddressBook> getAllContacts() {
+        return addressBookList;
+    }
+
+    public Optional<AddressBook> getContactById(Long id) {
+        return addressBookList.stream().filter(contact -> contact.getId().equals(id)).findFirst();
+    }
+
+    public Optional<AddressBook> updateContact(Long id, AddressBookDTO dto) {
+        Optional<AddressBook> contactOptional = getContactById(id);
+        contactOptional.ifPresent(contact -> {
+            contact.setName(dto.getName());
+            contact.setEmail(dto.getEmail());
+        });
+        return contactOptional;
+    }
+
+    public boolean deleteContact(Long id) {
+        return addressBookList.removeIf(contact -> contact.getId().equals(id));
     }
 }
